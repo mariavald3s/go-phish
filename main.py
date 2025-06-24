@@ -1,18 +1,29 @@
-import imaplib
 import email
-from email.header import decode_header
-import re
+import time
 
-def connect_email(username, password):
-    imap = imaplib.IMAP4_SSL("imap.gmail.com")
-    imap.login(username, password)
-    imap.select("inbox")
-    return imap
+import helpers
+from dotenv import load_dotenv
+import os
 
-def extract_urls_from_email(email_message):
-    urls = []
-    for part in email_message.walk():
-        if part.get_content_type() == "text/plain":
-            body = part.get_payload(decode=True).decode(errors='ignore')
-            urls.extend(re.findall(r'(https?://\S+)', body))
-    return urls
+load_dotenv()
+username = os.getenv("EMAIL_USER")
+password = os.getenv("EMAIL_PASS")
+api_key = os.getenv("URLSCAN_KEY")
+
+
+imap = helpers.connect_email(username, password)
+
+status, messages = imap.search(None, 'UNSEEN')
+email_ids = messages[0].split()
+
+for num in email_ids:
+    res, msg = imap.fetch(num, "(RFC822)")
+    for response in msg:
+        if isinstance(response, tuple):
+            email_message = email.message_from_bytes(response[1])
+            urls = helpers.extract_urls_from_email(email_message)
+            for url in urls:
+                helpers.scan_url(url, api_key)
+                time.sleep(5)  # Avoid rate limits
+
+imap.logout()
