@@ -7,7 +7,7 @@ import os
 
 load_dotenv()
 username = os.getenv("EMAIL_USER")
-password = os.getenv("EMAIL_PASS")
+password = os.getenv("EMAIL_PASS").replace(" ", "")
 api_key = os.getenv("URLSCAN_KEY")
 
 
